@@ -20,6 +20,11 @@ type Staff = {
   sort_order: number;
 };
 
+type Subscription = {
+  plan: "free" | "pro";
+  status: string;
+};
+
 type FormState = {
   name: string;
   title: string;
@@ -43,6 +48,9 @@ export default function StaffPage() {
   const [studioId, setStudioId] = useState("");
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [subscription, setSubscription] =
+    useState<Subscription | null>(null);
+
   const [staffServiceMap, setStaffServiceMap] = useState<
     Record<string, string[]>
   >({});
@@ -85,6 +93,19 @@ export default function StaffPage() {
       }
 
       setStudioId(studio.id);
+
+      const { data: subscriptionData } = await supabase
+        .from("studio_subscriptions")
+        .select("plan, status")
+        .eq("studio_id", studio.id)
+        .maybeSingle();
+
+      setSubscription(
+        (subscriptionData as Subscription | null) || {
+          plan: "free",
+          status: "active",
+        }
+      );
 
       const { data: serviceData, error: serviceError } = await supabase
         .from("services")
@@ -164,6 +185,19 @@ export default function StaffPage() {
     setStaffServiceMap(map);
   }
 
+  const plan = subscription?.plan || "free";
+
+  const activeStaffCount = useMemo(
+    () => staffList.filter((item) => item.is_active).length,
+    [staffList]
+  );
+
+  const freeLimitReached =
+    plan === "free" && activeStaffCount >= 1;
+
+  const canCreateStaff =
+    plan === "pro" || !freeLimitReached;
+
   function scrollToSection(id: string) {
     document.getElementById(id)?.scrollIntoView({
       behavior: "smooth",
@@ -216,6 +250,13 @@ export default function StaffPage() {
 
     if (!validateForm()) return;
 
+    if (!editingId && !canCreateStaff) {
+      setMessage(
+        "FREE 方案最多可啟用 1 位服務人員，請升級 PRO 後新增第 2 位。"
+      );
+      return;
+    }
+
     setSaving(true);
 
     let staffId = editingId;
@@ -243,9 +284,7 @@ export default function StaffPage() {
       const nextSortOrder =
         staffList.length === 0
           ? 0
-          : Math.max(
-              ...staffList.map((item) => item.sort_order)
-            ) + 1;
+          : Math.max(...staffList.map((item) => item.sort_order)) + 1;
 
       const { data, error } = await supabase
         .from("staff")
@@ -258,7 +297,14 @@ export default function StaffPage() {
         .single();
 
       if (error) {
-        setMessage(`新增失敗：${error.message}`);
+        if (error.message.includes("FREE_PLAN_STAFF_LIMIT")) {
+          setMessage(
+            "FREE 方案最多可啟用 1 位服務人員，請升級 PRO 後新增第 2 位。"
+          );
+        } else {
+          setMessage(`新增失敗：${error.message}`);
+        }
+
         setSaving(false);
         return;
       }
@@ -337,6 +383,17 @@ export default function StaffPage() {
     setMessage("");
     setSuccess(false);
 
+    if (
+      !person.is_active &&
+      plan === "free" &&
+      activeStaffCount >= 1
+    ) {
+      setMessage(
+        "FREE 方案只能啟用 1 位服務人員。請先停用目前人員，或升級 PRO。"
+      );
+      return;
+    }
+
     const { error } = await supabase
       .from("staff")
       .update({
@@ -345,7 +402,14 @@ export default function StaffPage() {
       .eq("id", person.id);
 
     if (error) {
-      setMessage(`更新失敗：${error.message}`);
+      if (error.message.includes("FREE_PLAN_STAFF_LIMIT")) {
+        setMessage(
+          "FREE 方案只能啟用 1 位服務人員。請升級 PRO 後啟用更多人員。"
+        );
+      } else {
+        setMessage(`更新失敗：${error.message}`);
+      }
+
       return;
     }
 
@@ -477,26 +541,43 @@ export default function StaffPage() {
           }}
         >
           <div>
-            <div style={eyebrow}>
-              STAFF
-            </div>
+            <div style={eyebrow}>STAFF</div>
 
-            <div
-              style={{
-                fontSize: "18px",
-              }}
-            >
+            <div style={{ fontSize: "18px" }}>
               服務人員
             </div>
           </div>
 
           <div
             style={{
-              fontSize: "12px",
-              color: "#888",
+              display: "flex",
+              alignItems: "center",
+              gap: "24px",
             }}
           >
-            {staffList.length} 位服務人員
+            <div
+              style={{
+                fontSize: "12px",
+                color: "#888",
+              }}
+            >
+              {plan.toUpperCase()} ·{" "}
+              {plan === "free"
+                ? `${activeStaffCount} / 1`
+                : `${activeStaffCount} 位啟用`}
+            </div>
+
+            {plan === "free" && (
+              <button
+                type="button"
+                onClick={() =>
+                  router.push("/dashboard/plan")
+                }
+                style={upgradeButton}
+              >
+                UPGRADE PRO
+              </button>
+            )}
           </div>
         </div>
 
@@ -512,9 +593,7 @@ export default function StaffPage() {
         >
           <button
             type="button"
-            onClick={() =>
-              scrollToSection("staff-form")
-            }
+            onClick={() => scrollToSection("staff-form")}
             style={sectionNavButton}
           >
             新增服務人員
@@ -532,9 +611,7 @@ export default function StaffPage() {
 
           <button
             type="button"
-            onClick={() =>
-              scrollToSection("staff-list")
-            }
+            onClick={() => scrollToSection("staff-list")}
             style={sectionNavButton}
           >
             目前人員
@@ -552,7 +629,8 @@ export default function StaffPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "260px minmax(0, 1fr)",
+            gridTemplateColumns:
+              "260px minmax(0, 1fr)",
             gap: "70px",
           }}
         >
@@ -583,6 +661,40 @@ export default function StaffPage() {
             >
               每位服務人員可以有自己的職稱與可提供服務。
             </p>
+
+            <div
+              style={{
+                marginTop: "34px",
+                paddingTop: "20px",
+                borderTop: "1px solid #D3D3CE",
+              }}
+            >
+              <div style={miniLabel}>
+                CURRENT PLAN
+              </div>
+
+              <div
+                style={{
+                  marginTop: "9px",
+                  fontSize: "20px",
+                }}
+              >
+                {plan.toUpperCase()}
+              </div>
+
+              <div
+                style={{
+                  marginTop: "10px",
+                  color: "#888",
+                  fontSize: "13px",
+                  lineHeight: 1.7,
+                }}
+              >
+                {plan === "free"
+                  ? "FREE 可啟用 1 位服務人員。"
+                  : "PRO 可啟用多位服務人員。"}
+              </div>
+            </div>
           </aside>
 
           <section>
@@ -604,11 +716,68 @@ export default function StaffPage() {
                   : "新增服務人員"}
               </h2>
 
-              <div style={formGrid}>
+              {!editingId && freeLimitReached && (
+                <div style={limitBox}>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      letterSpacing: "0.12em",
+                      color: "#888",
+                    }}
+                  >
+                    FREE LIMIT
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      fontSize: "17px",
+                    }}
+                  >
+                    已使用免費方案的 1 位服務人員額度
+                  </div>
+
+                  <p
+                    style={{
+                      margin: "10px 0 0",
+                      color: "#777",
+                      fontSize: "13px",
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    目前人員資料不受影響。若要新增第 2 位服務人員，需要升級 PRO。
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      router.push("/dashboard/plan")
+                    }
+                    style={{
+                      ...primaryButton,
+                      marginTop: "20px",
+                    }}
+                  >
+                    VIEW PRO
+                  </button>
+                </div>
+              )}
+
+              <div
+                style={{
+                  ...formGrid,
+                  opacity:
+                    !editingId && freeLimitReached
+                      ? 0.4
+                      : 1,
+                  pointerEvents:
+                    !editingId && freeLimitReached
+                      ? "none"
+                      : "auto",
+                }}
+              >
                 <div>
-                  <label style={labelStyle}>
-                    姓名
-                  </label>
+                  <label style={labelStyle}>姓名</label>
 
                   <input
                     value={form.name}
@@ -621,9 +790,7 @@ export default function StaffPage() {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>
-                    職稱
-                  </label>
+                  <label style={labelStyle}>職稱</label>
 
                   <input
                     value={form.title}
@@ -662,9 +829,7 @@ export default function StaffPage() {
                     gridColumn: "1 / -1",
                   }}
                 >
-                  <label style={labelStyle}>
-                    簡介
-                  </label>
+                  <label style={labelStyle}>簡介</label>
 
                   <textarea
                     rows={4}
@@ -688,9 +853,7 @@ export default function StaffPage() {
                 paddingTop: "30px",
               }}
             >
-              <div style={eyebrow}>
-                SERVICES
-              </div>
+              <div style={eyebrow}>SERVICES</div>
 
               <h2 style={sectionTitle}>
                 可提供服務
@@ -707,112 +870,119 @@ export default function StaffPage() {
                 顧客選擇服務後，只會看到有提供該服務的人員。
               </p>
 
-              {activeServices.length === 0 ? (
-                <div
-                  style={{
-                    marginTop: "28px",
-                    padding: "28px 0",
-                    borderTop: "1px solid #D4D4CF",
-                    borderBottom: "1px solid #D4D4CF",
-                    color: "#888",
-                    fontSize: "14px",
-                  }}
-                >
-                  目前還沒有已上架服務，請先到服務管理建立服務。
-                </div>
-              ) : (
-                <div
-                  style={{
-                    marginTop: "28px",
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "1px",
-                    border: "1px solid #DADAD5",
-                    background: "#DADAD5",
-                  }}
-                >
-                  {activeServices.map((service) => {
-                    const selected =
-                      form.serviceIds.includes(service.id);
-
-                    return (
-                      <button
-                        key={service.id}
-                        type="button"
-                        onClick={() =>
-                          toggleService(service.id)
-                        }
-                        style={{
-                          border: "none",
-                          padding: "18px 20px",
-                          background: selected
-                            ? "#171717"
-                            : "#F7F7F5",
-                          color: selected
-                            ? "#FFF"
-                            : "#171717",
-                          textAlign: "left",
-                          fontSize: "14px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        {selected ? "✓ " : ""}
-                        {service.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {message && (
-                <div
-                  style={{
-                    marginTop: "34px",
-                    paddingTop: "16px",
-                    borderTop: "1px solid #D0D0CB",
-                    color: success
-                      ? "#3D6C4D"
-                      : "#9A3D37",
-                    fontSize: "14px",
-                  }}
-                >
-                  {message}
-                </div>
-              )}
-
               <div
                 style={{
-                  marginTop: "40px",
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "14px",
+                  opacity:
+                    !editingId && freeLimitReached
+                      ? 0.4
+                      : 1,
+                  pointerEvents:
+                    !editingId && freeLimitReached
+                      ? "none"
+                      : "auto",
                 }}
               >
-                {editingId && (
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    style={secondaryButton}
-                  >
-                    CANCEL
-                  </button>
+                {activeServices.length === 0 ? (
+                  <div style={emptyBox}>
+                    目前還沒有已上架服務，請先到服務管理建立服務。
+                  </div>
+                ) : (
+                  <div style={serviceGrid}>
+                    {activeServices.map((service) => {
+                      const selected =
+                        form.serviceIds.includes(
+                          service.id
+                        );
+
+                      return (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() =>
+                            toggleService(service.id)
+                          }
+                          style={{
+                            border: "none",
+                            padding: "18px 20px",
+                            background: selected
+                              ? "#171717"
+                              : "#F7F7F5",
+                            color: selected
+                              ? "#FFF"
+                              : "#171717",
+                            textAlign: "left",
+                            fontSize: "14px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {selected ? "✓ " : ""}
+                          {service.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
 
-                <button
-                  type="button"
-                  onClick={saveStaff}
-                  disabled={saving}
+                {message && (
+                  <div
+                    style={{
+                      marginTop: "34px",
+                      paddingTop: "16px",
+                      borderTop:
+                        "1px solid #D0D0CB",
+                      color: success
+                        ? "#3D6C4D"
+                        : "#9A3D37",
+                      fontSize: "14px",
+                    }}
+                  >
+                    {message}
+                  </div>
+                )}
+
+                <div
                   style={{
-                    ...primaryButton,
-                    opacity: saving ? 0.6 : 1,
+                    marginTop: "40px",
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: "14px",
                   }}
                 >
-                  {saving
-                    ? "SAVING..."
-                    : editingId
-                    ? "SAVE CHANGES"
-                    : "ADD STAFF"}
-                </button>
+                  {editingId && (
+                    <button
+                      type="button"
+                      onClick={resetForm}
+                      style={secondaryButton}
+                    >
+                      CANCEL
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={saveStaff}
+                    disabled={
+                      saving ||
+                      (!editingId &&
+                        freeLimitReached)
+                    }
+                    style={{
+                      ...primaryButton,
+                      opacity:
+                        saving ||
+                        (!editingId &&
+                          freeLimitReached)
+                          ? 0.4
+                          : 1,
+                    }}
+                  >
+                    {saving
+                      ? "SAVING..."
+                      : editingId
+                      ? "SAVE CHANGES"
+                      : "ADD STAFF"}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -834,179 +1004,194 @@ export default function StaffPage() {
               </h2>
 
               {staffList.length === 0 ? (
-                <div
-                  style={{
-                    marginTop: "28px",
-                    padding: "38px 0",
-                    borderTop: "1px solid #D3D3CE",
-                    borderBottom: "1px solid #D3D3CE",
-                    color: "#888",
-                    fontSize: "14px",
-                  }}
-                >
+                <div style={emptyBox}>
                   還沒有服務人員。
                 </div>
               ) : (
                 <div
                   style={{
                     marginTop: "28px",
-                    borderTop: "1px solid #CFCFCA",
+                    borderTop:
+                      "1px solid #CFCFCA",
                   }}
                 >
-                  {staffList.map((person, index) => (
-                    <div
-                      key={person.id}
-                      style={{
-                        padding: "25px 0",
-                        borderBottom: "1px solid #D9D9D4",
-                        display: "grid",
-                        gridTemplateColumns:
-                          "46px minmax(240px, 1fr) 150px 240px",
-                        gap: "18px",
-                        alignItems: "center",
-                        opacity: person.is_active
-                          ? 1
-                          : 0.45,
-                      }}
-                    >
+                  {staffList.map(
+                    (person, index) => (
                       <div
+                        key={person.id}
                         style={{
-                          fontSize: "11px",
-                          color: "#999",
+                          padding: "25px 0",
+                          borderBottom:
+                            "1px solid #D9D9D4",
+                          display: "grid",
+                          gridTemplateColumns:
+                            "46px minmax(240px, 1fr) 150px 240px",
+                          gap: "18px",
+                          alignItems: "center",
+                          opacity: person.is_active
+                            ? 1
+                            : 0.45,
                         }}
                       >
-                        {String(index + 1).padStart(
-                          2,
-                          "0"
-                        )}
-                      </div>
-
-                      <div>
                         <div
                           style={{
-                            fontSize: "16px",
-                          }}
-                        >
-                          {person.name}
-                        </div>
-
-                        <div
-                          style={{
-                            marginTop: "7px",
-                            fontSize: "12px",
-                            color: "#888",
-                          }}
-                        >
-                          {person.title || "未設定職稱"}
-                        </div>
-
-                        <div
-                          style={{
-                            marginTop: "7px",
-                            fontSize: "12px",
+                            fontSize: "11px",
                             color: "#999",
-                            lineHeight: 1.6,
                           }}
                         >
-                          {serviceNames(person.id)}
+                          {String(
+                            index + 1
+                          ).padStart(2, "0")}
                         </div>
-                      </div>
 
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          letterSpacing: "0.08em",
-                          color: person.is_active
-                            ? "#477255"
-                            : "#999",
-                        }}
-                      >
-                        {person.is_active
-                          ? "ACTIVE"
-                          : "HIDDEN"}
-                      </div>
+                        <div>
+                          <div
+                            style={{
+                              fontSize: "16px",
+                            }}
+                          >
+                            {person.name}
+                          </div>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "flex-end",
-                          gap: "13px",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <button
-                          type="button"
-                          disabled={index === 0}
-                          onClick={() =>
-                            moveStaff(index, "up")
-                          }
+                          <div
+                            style={{
+                              marginTop: "7px",
+                              fontSize: "12px",
+                              color: "#888",
+                            }}
+                          >
+                            {person.title ||
+                              "未設定職稱"}
+                          </div>
+
+                          <div
+                            style={{
+                              marginTop: "7px",
+                              fontSize: "12px",
+                              color: "#999",
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            {serviceNames(
+                              person.id
+                            )}
+                          </div>
+                        </div>
+
+                        <div
                           style={{
-                            ...smallButton,
-                            opacity:
-                              index === 0 ? 0.3 : 1,
+                            fontSize: "11px",
+                            letterSpacing:
+                              "0.08em",
+                            color:
+                              person.is_active
+                                ? "#477255"
+                                : "#999",
                           }}
-                        >
-                          ↑
-                        </button>
-
-                        <button
-                          type="button"
-                          disabled={
-                            index ===
-                            staffList.length - 1
-                          }
-                          onClick={() =>
-                            moveStaff(index, "down")
-                          }
-                          style={{
-                            ...smallButton,
-                            opacity:
-                              index ===
-                              staffList.length - 1
-                                ? 0.3
-                                : 1,
-                          }}
-                        >
-                          ↓
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            editStaff(person)
-                          }
-                          style={smallButton}
-                        >
-                          EDIT
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            toggleActive(person)
-                          }
-                          style={smallButton}
                         >
                           {person.is_active
-                            ? "HIDE"
-                            : "SHOW"}
-                        </button>
+                            ? "ACTIVE"
+                            : "HIDDEN"}
+                        </div>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            deleteStaff(person)
-                          }
+                        <div
                           style={{
-                            ...smallButton,
-                            color: "#9A3D37",
+                            display: "flex",
+                            justifyContent:
+                              "flex-end",
+                            gap: "13px",
+                            flexWrap: "wrap",
                           }}
                         >
-                          DELETE
-                        </button>
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() =>
+                              moveStaff(
+                                index,
+                                "up"
+                              )
+                            }
+                            style={{
+                              ...smallButton,
+                              opacity:
+                                index === 0
+                                  ? 0.3
+                                  : 1,
+                            }}
+                          >
+                            ↑
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={
+                              index ===
+                              staffList.length -
+                                1
+                            }
+                            onClick={() =>
+                              moveStaff(
+                                index,
+                                "down"
+                              )
+                            }
+                            style={{
+                              ...smallButton,
+                              opacity:
+                                index ===
+                                staffList.length -
+                                  1
+                                  ? 0.3
+                                  : 1,
+                            }}
+                          >
+                            ↓
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              editStaff(person)
+                            }
+                            style={smallButton}
+                          >
+                            EDIT
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              toggleActive(
+                                person
+                              )
+                            }
+                            style={smallButton}
+                          >
+                            {person.is_active
+                              ? "HIDE"
+                              : "SHOW"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              deleteStaff(
+                                person
+                              )
+                            }
+                            style={{
+                              ...smallButton,
+                              color:
+                                "#9A3D37",
+                            }}
+                          >
+                            DELETE
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               )}
             </div>
@@ -1030,6 +1215,12 @@ const eyebrow: React.CSSProperties = {
   color: "#888",
   letterSpacing: "0.16em",
   marginBottom: "12px",
+};
+
+const miniLabel: React.CSSProperties = {
+  fontSize: "10px",
+  color: "#999",
+  letterSpacing: "0.14em",
 };
 
 const sectionTitle: React.CSSProperties = {
@@ -1093,6 +1284,16 @@ const secondaryButton: React.CSSProperties = {
   cursor: "pointer",
 };
 
+const upgradeButton: React.CSSProperties = {
+  border: "1px solid #171717",
+  background: "transparent",
+  color: "#171717",
+  padding: "9px 14px",
+  fontSize: "10px",
+  letterSpacing: "0.1em",
+  cursor: "pointer",
+};
+
 const smallButton: React.CSSProperties = {
   border: "none",
   background: "transparent",
@@ -1108,4 +1309,29 @@ const sectionNavButton: React.CSSProperties = {
   color: "#555",
   fontSize: "13px",
   cursor: "pointer",
+};
+
+const limitBox: React.CSSProperties = {
+  marginTop: "30px",
+  borderTop: "1px solid #CFCFCA",
+  borderBottom: "1px solid #CFCFCA",
+  padding: "25px 0",
+};
+
+const emptyBox: React.CSSProperties = {
+  marginTop: "28px",
+  padding: "28px 0",
+  borderTop: "1px solid #D4D4CF",
+  borderBottom: "1px solid #D4D4CF",
+  color: "#888",
+  fontSize: "14px",
+};
+
+const serviceGrid: React.CSSProperties = {
+  marginTop: "28px",
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "1px",
+  border: "1px solid #DADAD5",
+  background: "#DADAD5",
 };
