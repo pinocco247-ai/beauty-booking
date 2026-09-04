@@ -72,8 +72,10 @@ export default function ServicesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [selectedCategory, setSelectedCategory] = useState("all");
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
 
@@ -107,11 +109,12 @@ export default function ServicesPage() {
 
       setStudioId(studio.id);
 
-      const { data: categoryData, error: categoryError } = await supabase
-        .from("service_categories")
-        .select("id, name, is_active")
-        .eq("studio_id", studio.id)
-        .order("sort_order", { ascending: true });
+      const { data: categoryData, error: categoryError } =
+        await supabase
+          .from("service_categories")
+          .select("id, name, is_active")
+          .eq("studio_id", studio.id)
+          .order("sort_order", { ascending: true });
 
       if (categoryError) {
         setMessage(`讀取分類失敗：${categoryError.message}`);
@@ -121,14 +124,15 @@ export default function ServicesPage() {
 
       setCategories(categoryData || []);
 
-      const { data: serviceData, error: serviceError } = await supabase
-        .from("services")
-        .select(
-          "id, category_id, name, description, price_type, price, duration_minutes, buffer_before_minutes, buffer_after_minutes, deposit_mode, deposit_value, is_active, sort_order"
-        )
-        .eq("studio_id", studio.id)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
+      const { data: serviceData, error: serviceError } =
+        await supabase
+          .from("services")
+          .select(
+            "id, category_id, name, description, price_type, price, duration_minutes, buffer_before_minutes, buffer_after_minutes, deposit_mode, deposit_value, is_active, sort_order"
+          )
+          .eq("studio_id", studio.id)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true });
 
       if (serviceError) {
         setMessage(`讀取服務失敗：${serviceError.message}`);
@@ -163,6 +167,13 @@ export default function ServicesPage() {
     setServices(data || []);
   }
 
+  function scrollToSection(id: string) {
+    document.getElementById(id)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
+
   function updateForm<K extends keyof FormState>(
     key: K,
     value: FormState[K]
@@ -194,7 +205,8 @@ export default function ServicesPage() {
     }
 
     if (
-      (form.priceType === "fixed" || form.priceType === "from") &&
+      (form.priceType === "fixed" ||
+        form.priceType === "from") &&
       (!form.price || Number(form.price) < 0)
     ) {
       setMessage("請輸入價格。");
@@ -204,7 +216,8 @@ export default function ServicesPage() {
     if (
       (form.depositMode === "custom_fixed" ||
         form.depositMode === "custom_percent") &&
-      (!form.depositValue || Number(form.depositValue) <= 0)
+      (!form.depositValue ||
+        Number(form.depositValue) <= 0)
     ) {
       setMessage("請輸入訂金金額或比例。");
       return false;
@@ -230,7 +243,8 @@ export default function ServicesPage() {
     setSaving(true);
 
     const price =
-      form.priceType === "free" || form.priceType === "quote"
+      form.priceType === "free" ||
+      form.priceType === "quote"
         ? null
         : Number(form.price);
 
@@ -248,8 +262,12 @@ export default function ServicesPage() {
       price_type: form.priceType,
       price,
       duration_minutes: Number(form.durationMinutes),
-      buffer_before_minutes: Number(form.bufferBeforeMinutes || 0),
-      buffer_after_minutes: Number(form.bufferAfterMinutes || 0),
+      buffer_before_minutes: Number(
+        form.bufferBeforeMinutes || 0
+      ),
+      buffer_after_minutes: Number(
+        form.bufferAfterMinutes || 0
+      ),
       deposit_mode: form.depositMode,
       deposit_value: depositValue,
     };
@@ -261,12 +279,7 @@ export default function ServicesPage() {
         .eq("id", editingId);
 
       if (error) {
-        if (error.code === "23505") {
-          setMessage("這個服務名稱已經存在。");
-        } else {
-          setMessage(`修改失敗：${error.message}`);
-        }
-
+        setMessage(`修改失敗：${error.message}`);
         setSaving(false);
         return;
       }
@@ -277,21 +290,22 @@ export default function ServicesPage() {
       const nextSortOrder =
         services.length === 0
           ? 0
-          : Math.max(...services.map((item) => item.sort_order)) + 1;
+          : Math.max(
+              ...services.map(
+                (item) => item.sort_order
+              )
+            ) + 1;
 
-      const { error } = await supabase.from("services").insert({
-        ...payload,
-        sort_order: nextSortOrder,
-        is_active: true,
-      });
+      const { error } = await supabase
+        .from("services")
+        .insert({
+          ...payload,
+          sort_order: nextSortOrder,
+          is_active: true,
+        });
 
       if (error) {
-        if (error.code === "23505") {
-          setMessage("這個服務名稱已經存在。");
-        } else {
-          setMessage(`新增失敗：${error.message}`);
-        }
-
+        setMessage(`新增失敗：${error.message}`);
         setSaving(false);
         return;
       }
@@ -301,6 +315,7 @@ export default function ServicesPage() {
     }
 
     await reloadServices();
+
     setForm(emptyForm);
     setEditingId(null);
     setSaving(false);
@@ -317,29 +332,29 @@ export default function ServicesPage() {
       description: service.description || "",
       priceType: service.price_type,
       price:
-        service.price === null || service.price === undefined
+        service.price === null
           ? ""
           : String(service.price),
-      durationMinutes: String(service.duration_minutes),
-      bufferBeforeMinutes: String(service.buffer_before_minutes),
-      bufferAfterMinutes: String(service.buffer_after_minutes),
+      durationMinutes: String(
+        service.duration_minutes
+      ),
+      bufferBeforeMinutes: String(
+        service.buffer_before_minutes
+      ),
+      bufferAfterMinutes: String(
+        service.buffer_after_minutes
+      ),
       depositMode: service.deposit_mode,
       depositValue:
-        service.deposit_value === null || service.deposit_value === undefined
+        service.deposit_value === null
           ? ""
           : String(service.deposit_value),
     });
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    scrollToSection("service-form");
   }
 
   async function toggleActive(service: Service) {
-    setMessage("");
-    setSuccess(false);
-
     const { error } = await supabase
       .from("services")
       .update({
@@ -379,69 +394,48 @@ export default function ServicesPage() {
     await reloadServices();
   }
 
-  async function moveService(index: number, direction: "up" | "down") {
-    const list = filteredServices;
-
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-
-    if (targetIndex < 0 || targetIndex >= list.length) return;
-
-    const current = list[index];
-    const target = list[targetIndex];
-
-    const { error: firstError } = await supabase
-      .from("services")
-      .update({
-        sort_order: target.sort_order,
-      })
-      .eq("id", current.id);
-
-    if (firstError) {
-      setMessage(`排序失敗：${firstError.message}`);
-      return;
-    }
-
-    const { error: secondError } = await supabase
-      .from("services")
-      .update({
-        sort_order: current.sort_order,
-      })
-      .eq("id", target.id);
-
-    if (secondError) {
-      setMessage(`排序失敗：${secondError.message}`);
-      return;
-    }
-
-    await reloadServices();
-  }
-
   const filteredServices = useMemo(() => {
-    if (selectedCategory === "all") return services;
+    if (selectedCategory === "all") {
+      return services;
+    }
 
     if (selectedCategory === "uncategorized") {
-      return services.filter((item) => !item.category_id);
+      return services.filter(
+        (item) => !item.category_id
+      );
     }
 
     return services.filter(
-      (item) => item.category_id === selectedCategory
+      (item) =>
+        item.category_id === selectedCategory
     );
   }, [services, selectedCategory]);
 
-  function categoryName(categoryId: string | null) {
+  function categoryName(
+    categoryId: string | null
+  ) {
     if (!categoryId) return "未分類";
 
     return (
-      categories.find((category) => category.id === categoryId)?.name ||
-      "未分類"
+      categories.find(
+        (category) =>
+          category.id === categoryId
+      )?.name || "未分類"
     );
   }
 
   function priceText(service: Service) {
-    if (service.price_type === "free") return "免費";
-    if (service.price_type === "quote") return "到店報價";
+    if (service.price_type === "free") {
+      return "免費";
+    }
 
-    const formatted = Number(service.price || 0).toLocaleString("zh-TW");
+    if (service.price_type === "quote") {
+      return "到店報價";
+    }
+
+    const formatted = Number(
+      service.price || 0
+    ).toLocaleString("zh-TW");
 
     if (service.price_type === "from") {
       return `NT$${formatted} 起`;
@@ -451,7 +445,9 @@ export default function ServicesPage() {
   }
 
   function depositText(service: Service) {
-    if (service.deposit_mode === "studio_default") {
+    if (
+      service.deposit_mode === "studio_default"
+    ) {
       return "依工作室預設";
     }
 
@@ -459,26 +455,24 @@ export default function ServicesPage() {
       return "不收訂金";
     }
 
-    if (service.deposit_mode === "custom_fixed") {
-      return `訂金 NT$${Number(service.deposit_value || 0).toLocaleString(
-        "zh-TW"
-      )}`;
+    if (
+      service.deposit_mode ===
+      "custom_fixed"
+    ) {
+      return `訂金 NT$${Number(
+        service.deposit_value || 0
+      ).toLocaleString("zh-TW")}`;
     }
 
-    return `訂金 ${service.deposit_value || 0}%`;
+    return `訂金 ${
+      service.deposit_value || 0
+    }%`;
   }
 
   if (loading) {
     return (
       <main style={loadingStyle}>
-        <span
-          style={{
-            fontSize: "12px",
-            letterSpacing: "0.14em",
-          }}
-        >
-          LOADING...
-        </span>
+        LOADING...
       </main>
     );
   }
@@ -492,75 +486,131 @@ export default function ServicesPage() {
         fontFamily: "Arial, sans-serif",
       }}
     >
-      <header
+      <div
         style={{
-          height: "76px",
-          padding: "0 42px",
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+          background: "#F7F7F5",
           borderBottom: "1px solid #DADAD5",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
         }}
       >
         <div
           style={{
-            fontSize: "13px",
-            letterSpacing: "0.18em",
+            minHeight: "76px",
+            padding: "0 54px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          BEAUTY BOOKING
+          <div>
+            <div style={eyebrow}>
+              SERVICES
+            </div>
+
+            <div
+              style={{
+                fontSize: "18px",
+              }}
+            >
+              服務管理
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              router.push(
+                "/dashboard/services/categories"
+              )
+            }
+            style={headerButton}
+          >
+            服務分類管理 →
+          </button>
         </div>
 
         <div
           style={{
+            padding: "0 54px",
+            height: "52px",
             display: "flex",
-            gap: "24px",
             alignItems: "center",
+            gap: "30px",
+            borderTop: "1px solid #E4E4E0",
           }}
         >
           <button
             type="button"
             onClick={() =>
-              router.push("/dashboard/services/categories")
+              scrollToSection("service-form")
             }
-            style={headerButton}
+            style={sectionNavButton}
           >
-            SERVICE CATEGORIES
+            新增服務
           </button>
 
           <button
             type="button"
-            onClick={() => router.push("/dashboard")}
-            style={headerButton}
+            onClick={() =>
+              scrollToSection("deposit-settings")
+            }
+            style={sectionNavButton}
           >
-            BACK TO DASHBOARD
+            訂金設定
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              scrollToSection("service-list")
+            }
+            style={sectionNavButton}
+          >
+            目前服務
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              router.push(
+                "/dashboard/services/categories"
+              )
+            }
+            style={sectionNavButton}
+          >
+            服務分類
           </button>
         </div>
-      </header>
+      </div>
 
       <div
         style={{
           maxWidth: "1180px",
           margin: "0 auto",
-          padding: "64px 48px 100px",
+          padding: "64px 54px 110px",
         }}
       >
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "300px 1fr",
-            gap: "72px",
+            gridTemplateColumns:
+              "260px minmax(0, 1fr)",
+            gap: "70px",
           }}
         >
           <aside>
-            <div style={eyebrow}>SERVICES</div>
+            <div style={eyebrow}>
+              SERVICE SETTINGS
+            </div>
 
             <h1
               style={{
                 margin: 0,
                 fontSize: "42px",
-                lineHeight: 1.08,
                 fontWeight: 500,
+                lineHeight: 1.08,
                 letterSpacing: "-0.04em",
               }}
             >
@@ -575,33 +625,49 @@ export default function ServicesPage() {
                 lineHeight: 1.8,
               }}
             >
-              建立實際提供給顧客預約的服務、價格、時間與訂金設定。
+              管理服務、價格、預約時間、緩衝時間與訂金。
             </p>
           </aside>
 
           <section>
             <div
+              id="service-form"
               style={{
-                borderTop: "1px solid #CACAC5",
-                paddingTop: "28px",
+                scrollMarginTop: "160px",
+                borderTop:
+                  "1px solid #CACAC5",
+                paddingTop: "30px",
               }}
             >
               <div style={eyebrow}>
-                {editingId ? "EDIT SERVICE" : "ADD SERVICE"}
+                {editingId
+                  ? "EDIT SERVICE"
+                  : "ADD SERVICE"}
               </div>
 
               <h2 style={sectionTitle}>
-                {editingId ? "編輯服務" : "新增服務"}
+                {editingId
+                  ? "編輯服務"
+                  : "新增服務"}
               </h2>
 
               <div style={formGrid}>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={labelStyle}>服務名稱</label>
+                <div
+                  style={{
+                    gridColumn: "1 / -1",
+                  }}
+                >
+                  <label style={labelStyle}>
+                    服務名稱
+                  </label>
 
                   <input
                     value={form.name}
                     onChange={(e) =>
-                      updateForm("name", e.target.value)
+                      updateForm(
+                        "name",
+                        e.target.value
+                      )
                     }
                     placeholder="例如：單色凝膠"
                     style={inputStyle}
@@ -609,75 +675,109 @@ export default function ServicesPage() {
                 </div>
 
                 <div>
-                  <label style={labelStyle}>服務分類</label>
+                  <label style={labelStyle}>
+                    服務分類
+                  </label>
 
                   <select
                     value={form.categoryId}
                     onChange={(e) =>
-                      updateForm("categoryId", e.target.value)
+                      updateForm(
+                        "categoryId",
+                        e.target.value
+                      )
                     }
                     style={selectStyle}
                   >
-                    <option value="">未分類</option>
+                    <option value="">
+                      未分類
+                    </option>
 
-                    {categories.map((category) => (
-                      <option
-                        key={category.id}
-                        value={category.id}
-                      >
-                        {category.name}
-                        {!category.is_active ? "（已隱藏）" : ""}
-                      </option>
-                    ))}
+                    {categories.map(
+                      (category) => (
+                        <option
+                          key={category.id}
+                          value={category.id}
+                        >
+                          {category.name}
+                        </option>
+                      )
+                    )}
                   </select>
                 </div>
 
                 <div>
-                  <label style={labelStyle}>價格類型</label>
+                  <label style={labelStyle}>
+                    價格類型
+                  </label>
 
                   <select
                     value={form.priceType}
                     onChange={(e) =>
                       updateForm(
                         "priceType",
-                        e.target.value as FormState["priceType"]
+                        e.target
+                          .value as FormState["priceType"]
                       )
                     }
                     style={selectStyle}
                   >
-                    <option value="fixed">固定價格</option>
-                    <option value="from">起價</option>
-                    <option value="free">免費</option>
-                    <option value="quote">到店報價</option>
+                    <option value="fixed">
+                      固定價格
+                    </option>
+
+                    <option value="from">
+                      起價
+                    </option>
+
+                    <option value="free">
+                      免費
+                    </option>
+
+                    <option value="quote">
+                      到店報價
+                    </option>
                   </select>
                 </div>
 
-                {(form.priceType === "fixed" ||
-                  form.priceType === "from") && (
+                {(form.priceType ===
+                  "fixed" ||
+                  form.priceType ===
+                    "from") && (
                   <div>
-                    <label style={labelStyle}>價格 NT$</label>
+                    <label
+                      style={labelStyle}
+                    >
+                      價格 NT$
+                    </label>
 
                     <input
                       type="number"
                       min="0"
                       value={form.price}
                       onChange={(e) =>
-                        updateForm("price", e.target.value)
+                        updateForm(
+                          "price",
+                          e.target.value
+                        )
                       }
-                      placeholder="1000"
                       style={inputStyle}
                     />
                   </div>
                 )}
 
                 <div>
-                  <label style={labelStyle}>預約佔用時間</label>
+                  <label style={labelStyle}>
+                    預約佔用時間
+                  </label>
 
                   <div style={numberField}>
                     <input
                       type="number"
                       min="1"
-                      value={form.durationMinutes}
+                      value={
+                        form.durationMinutes
+                      }
                       onChange={(e) =>
                         updateForm(
                           "durationMinutes",
@@ -687,18 +787,24 @@ export default function ServicesPage() {
                       style={numberInput}
                     />
 
-                    <span style={unitText}>分鐘</span>
+                    <span style={unitText}>
+                      分鐘
+                    </span>
                   </div>
                 </div>
 
                 <div>
-                  <label style={labelStyle}>前置緩衝</label>
+                  <label style={labelStyle}>
+                    前置緩衝
+                  </label>
 
                   <div style={numberField}>
                     <input
                       type="number"
                       min="0"
-                      value={form.bufferBeforeMinutes}
+                      value={
+                        form.bufferBeforeMinutes
+                      }
                       onChange={(e) =>
                         updateForm(
                           "bufferBeforeMinutes",
@@ -708,18 +814,24 @@ export default function ServicesPage() {
                       style={numberInput}
                     />
 
-                    <span style={unitText}>分鐘</span>
+                    <span style={unitText}>
+                      分鐘
+                    </span>
                   </div>
                 </div>
 
                 <div>
-                  <label style={labelStyle}>後置緩衝</label>
+                  <label style={labelStyle}>
+                    後置緩衝
+                  </label>
 
                   <div style={numberField}>
                     <input
                       type="number"
                       min="0"
-                      value={form.bufferAfterMinutes}
+                      value={
+                        form.bufferAfterMinutes
+                      }
                       onChange={(e) =>
                         updateForm(
                           "bufferAfterMinutes",
@@ -729,120 +841,148 @@ export default function ServicesPage() {
                       style={numberInput}
                     />
 
-                    <span style={unitText}>分鐘</span>
+                    <span style={unitText}>
+                      分鐘
+                    </span>
                   </div>
                 </div>
 
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={labelStyle}>服務說明</label>
+                <div
+                  style={{
+                    gridColumn: "1 / -1",
+                  }}
+                >
+                  <label style={labelStyle}>
+                    服務說明
+                  </label>
 
                   <textarea
+                    rows={4}
                     value={form.description}
                     onChange={(e) =>
-                      updateForm("description", e.target.value)
+                      updateForm(
+                        "description",
+                        e.target.value
+                      )
                     }
                     placeholder="可填寫服務內容、注意事項等"
-                    rows={4}
                     style={textareaStyle}
                   />
                 </div>
               </div>
+            </div>
+
+            <div
+              id="deposit-settings"
+              style={{
+                scrollMarginTop: "160px",
+                marginTop: "80px",
+                borderTop:
+                  "1px solid #CACAC5",
+                paddingTop: "30px",
+              }}
+            >
+              <div style={eyebrow}>
+                DEPOSIT
+              </div>
+
+              <h2 style={sectionTitle}>
+                訂金設定
+              </h2>
 
               <div
                 style={{
-                  marginTop: "54px",
-                  borderTop: "1px solid #D5D5D0",
-                  paddingTop: "34px",
+                  marginTop: "34px",
+                  display: "grid",
+                  gridTemplateColumns:
+                    "1fr 1fr",
+                  gap: "28px",
                 }}
               >
-                <div style={eyebrow}>DEPOSIT</div>
+                <div>
+                  <label style={labelStyle}>
+                    此服務訂金
+                  </label>
 
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: "22px",
-                    fontWeight: 500,
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  訂金設定
-                </h3>
+                  <select
+                    value={
+                      form.depositMode
+                    }
+                    onChange={(e) =>
+                      updateForm(
+                        "depositMode",
+                        e.target
+                          .value as FormState["depositMode"]
+                      )
+                    }
+                    style={selectStyle}
+                  >
+                    <option value="studio_default">
+                      使用工作室預設
+                    </option>
 
-                <div
-                  style={{
-                    marginTop: "28px",
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "26px",
-                  }}
-                >
+                    <option value="none">
+                      不收訂金
+                    </option>
+
+                    <option value="custom_fixed">
+                      自訂固定金額
+                    </option>
+
+                    <option value="custom_percent">
+                      自訂百分比
+                    </option>
+                  </select>
+                </div>
+
+                {(form.depositMode ===
+                  "custom_fixed" ||
+                  form.depositMode ===
+                    "custom_percent") && (
                   <div>
-                    <label style={labelStyle}>此服務訂金</label>
+                    <label
+                      style={labelStyle}
+                    >
+                      {form.depositMode ===
+                      "custom_fixed"
+                        ? "訂金金額 NT$"
+                        : "訂金比例 %"}
+                    </label>
 
-                    <select
-                      value={form.depositMode}
+                    <input
+                      type="number"
+                      min="0"
+                      max={
+                        form.depositMode ===
+                        "custom_percent"
+                          ? "100"
+                          : undefined
+                      }
+                      value={
+                        form.depositValue
+                      }
                       onChange={(e) =>
                         updateForm(
-                          "depositMode",
-                          e.target
-                            .value as FormState["depositMode"]
+                          "depositValue",
+                          e.target.value
                         )
                       }
-                      style={selectStyle}
-                    >
-                      <option value="studio_default">
-                        使用工作室預設
-                      </option>
-                      <option value="none">
-                        此服務不收訂金
-                      </option>
-                      <option value="custom_fixed">
-                        自訂固定金額
-                      </option>
-                      <option value="custom_percent">
-                        自訂百分比
-                      </option>
-                    </select>
+                      style={inputStyle}
+                    />
                   </div>
-
-                  {(form.depositMode === "custom_fixed" ||
-                    form.depositMode === "custom_percent") && (
-                    <div>
-                      <label style={labelStyle}>
-                        {form.depositMode === "custom_fixed"
-                          ? "訂金金額 NT$"
-                          : "訂金比例 %"}
-                      </label>
-
-                      <input
-                        type="number"
-                        min="0"
-                        max={
-                          form.depositMode === "custom_percent"
-                            ? "100"
-                            : undefined
-                        }
-                        value={form.depositValue}
-                        onChange={(e) =>
-                          updateForm(
-                            "depositValue",
-                            e.target.value
-                          )
-                        }
-                        style={inputStyle}
-                      />
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
 
               {message && (
                 <div
                   style={{
                     marginTop: "34px",
+                    borderTop:
+                      "1px solid #D0D0CB",
                     paddingTop: "16px",
-                    borderTop: "1px solid #D0D0CB",
-                    color: success ? "#3D6C4D" : "#9A3D37",
+                    color: success
+                      ? "#3D6C4D"
+                      : "#9A3D37",
                     fontSize: "14px",
                   }}
                 >
@@ -852,9 +992,10 @@ export default function ServicesPage() {
 
               <div
                 style={{
-                  marginTop: "38px",
+                  marginTop: "40px",
                   display: "flex",
-                  justifyContent: "flex-end",
+                  justifyContent:
+                    "flex-end",
                   gap: "14px",
                 }}
               >
@@ -874,7 +1015,9 @@ export default function ServicesPage() {
                   disabled={saving}
                   style={{
                     ...primaryButton,
-                    opacity: saving ? 0.6 : 1,
+                    opacity: saving
+                      ? 0.6
+                      : 1,
                   }}
                 >
                   {saving
@@ -886,10 +1029,23 @@ export default function ServicesPage() {
               </div>
             </div>
 
-            <div style={{ marginTop: "88px" }}>
-              <div style={eyebrow}>YOUR SERVICES</div>
+            <div
+              id="service-list"
+              style={{
+                scrollMarginTop: "160px",
+                marginTop: "90px",
+                borderTop:
+                  "1px solid #CACAC5",
+                paddingTop: "30px",
+              }}
+            >
+              <div style={eyebrow}>
+                YOUR SERVICES
+              </div>
 
-              <h2 style={sectionTitle}>目前服務</h2>
+              <h2 style={sectionTitle}>
+                目前服務
+              </h2>
 
               <div
                 style={{
@@ -901,15 +1057,21 @@ export default function ServicesPage() {
               >
                 <button
                   type="button"
-                  onClick={() => setSelectedCategory("all")}
+                  onClick={() =>
+                    setSelectedCategory(
+                      "all"
+                    )
+                  }
                   style={{
                     ...filterButton,
                     background:
-                      selectedCategory === "all"
+                      selectedCategory ===
+                      "all"
                         ? "#171717"
                         : "transparent",
                     color:
-                      selectedCategory === "all"
+                      selectedCategory ===
+                      "all"
                         ? "#FFF"
                         : "#171717",
                   }}
@@ -920,16 +1082,20 @@ export default function ServicesPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    setSelectedCategory("uncategorized")
+                    setSelectedCategory(
+                      "uncategorized"
+                    )
                   }
                   style={{
                     ...filterButton,
                     background:
-                      selectedCategory === "uncategorized"
+                      selectedCategory ===
+                      "uncategorized"
                         ? "#171717"
                         : "transparent",
                     color:
-                      selectedCategory === "uncategorized"
+                      selectedCategory ===
+                      "uncategorized"
                         ? "#FFF"
                         : "#171717",
                   }}
@@ -937,194 +1103,178 @@ export default function ServicesPage() {
                   未分類
                 </button>
 
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    type="button"
-                    onClick={() =>
-                      setSelectedCategory(category.id)
-                    }
-                    style={{
-                      ...filterButton,
-                      background:
-                        selectedCategory === category.id
-                          ? "#171717"
-                          : "transparent",
-                      color:
-                        selectedCategory === category.id
-                          ? "#FFF"
-                          : "#171717",
-                    }}
-                  >
-                    {category.name}
-                  </button>
-                ))}
+                {categories.map(
+                  (category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() =>
+                        setSelectedCategory(
+                          category.id
+                        )
+                      }
+                      style={{
+                        ...filterButton,
+                        background:
+                          selectedCategory ===
+                          category.id
+                            ? "#171717"
+                            : "transparent",
+                        color:
+                          selectedCategory ===
+                          category.id
+                            ? "#FFF"
+                            : "#171717",
+                      }}
+                    >
+                      {category.name}
+                    </button>
+                  )
+                )}
               </div>
 
-              {filteredServices.length === 0 ? (
+              {filteredServices.length ===
+              0 ? (
                 <div
                   style={{
                     marginTop: "28px",
                     padding: "38px 0",
-                    borderTop: "1px solid #D3D3CE",
-                    borderBottom: "1px solid #D3D3CE",
+                    borderTop:
+                      "1px solid #D3D3CE",
+                    borderBottom:
+                      "1px solid #D3D3CE",
                     color: "#888",
                     fontSize: "14px",
                   }}
                 >
-                  這個分類目前沒有服務。
+                  目前沒有服務。
                 </div>
               ) : (
                 <div
                   style={{
                     marginTop: "28px",
-                    borderTop: "1px solid #CFCFCA",
+                    borderTop:
+                      "1px solid #CFCFCA",
                   }}
                 >
-                  {filteredServices.map((service, index) => (
-                    <div
-                      key={service.id}
-                      style={{
-                        padding: "26px 0",
-                        borderBottom: "1px solid #D9D9D4",
-                        opacity: service.is_active ? 1 : 0.45,
-                        display: "grid",
-                        gridTemplateColumns:
-                          "46px minmax(220px, 1fr) 150px 160px 240px",
-                        gap: "18px",
-                        alignItems: "center",
-                      }}
-                    >
+                  {filteredServices.map(
+                    (service) => (
                       <div
+                        key={service.id}
                         style={{
-                          fontSize: "11px",
-                          color: "#999",
+                          padding:
+                            "24px 0",
+                          borderBottom:
+                            "1px solid #D9D9D4",
+                          opacity:
+                            service.is_active
+                              ? 1
+                              : 0.45,
+                          display: "grid",
+                          gridTemplateColumns:
+                            "minmax(220px, 1fr) 150px 220px",
+                          gap: "20px",
+                          alignItems:
+                            "center",
                         }}
                       >
-                        {String(index + 1).padStart(2, "0")}
-                      </div>
+                        <div>
+                          <div
+                            style={{
+                              fontSize:
+                                "16px",
+                            }}
+                          >
+                            {service.name}
+                          </div>
 
-                      <div>
-                        <div
-                          style={{
-                            fontSize: "16px",
-                            marginBottom: "8px",
-                          }}
-                        >
-                          {service.name}
+                          <div
+                            style={{
+                              marginTop:
+                                "8px",
+                              fontSize:
+                                "12px",
+                              color: "#888",
+                            }}
+                          >
+                            {categoryName(
+                              service.category_id
+                            )}
+                            {" · "}
+                            {
+                              service.duration_minutes
+                            }{" "}
+                            分鐘
+                            {" · "}
+                            {depositText(
+                              service
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          {priceText(
+                            service
+                          )}
                         </div>
 
                         <div
                           style={{
-                            fontSize: "12px",
-                            color: "#888",
-                            lineHeight: 1.6,
+                            display: "flex",
+                            justifyContent:
+                              "flex-end",
+                            gap: "14px",
                           }}
                         >
-                          {categoryName(service.category_id)}
-                          {" · "}
-                          {service.duration_minutes} 分鐘
-                          {" · "}
-                          {depositText(service)}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              editService(
+                                service
+                              )
+                            }
+                            style={
+                              smallButton
+                            }
+                          >
+                            EDIT
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              toggleActive(
+                                service
+                              )
+                            }
+                            style={
+                              smallButton
+                            }
+                          >
+                            {service.is_active
+                              ? "HIDE"
+                              : "SHOW"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              deleteService(
+                                service
+                              )
+                            }
+                            style={{
+                              ...smallButton,
+                              color:
+                                "#9A3D37",
+                            }}
+                          >
+                            DELETE
+                          </button>
                         </div>
                       </div>
-
-                      <div
-                        style={{
-                          fontSize: "14px",
-                        }}
-                      >
-                        {priceText(service)}
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          letterSpacing: "0.08em",
-                          color: service.is_active
-                            ? "#477255"
-                            : "#999",
-                        }}
-                      >
-                        {service.is_active
-                          ? "ACTIVE"
-                          : "HIDDEN"}
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "flex-end",
-                          alignItems: "center",
-                          gap: "12px",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <button
-                          type="button"
-                          disabled={index === 0}
-                          onClick={() =>
-                            moveService(index, "up")
-                          }
-                          style={{
-                            ...smallButton,
-                            opacity: index === 0 ? 0.3 : 1,
-                          }}
-                        >
-                          ↑
-                        </button>
-
-                        <button
-                          type="button"
-                          disabled={
-                            index === filteredServices.length - 1
-                          }
-                          onClick={() =>
-                            moveService(index, "down")
-                          }
-                          style={{
-                            ...smallButton,
-                            opacity:
-                              index ===
-                              filteredServices.length - 1
-                                ? 0.3
-                                : 1,
-                          }}
-                        >
-                          ↓
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => editService(service)}
-                          style={smallButton}
-                        >
-                          EDIT
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => toggleActive(service)}
-                          style={smallButton}
-                        >
-                          {service.is_active
-                            ? "HIDE"
-                            : "SHOW"}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => deleteService(service)}
-                          style={{
-                            ...smallButton,
-                            color: "#9A3D37",
-                          }}
-                        >
-                          DELETE
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               )}
             </div>
@@ -1141,15 +1291,13 @@ const loadingStyle: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   background: "#F7F7F5",
-  color: "#171717",
-  fontFamily: "Arial, sans-serif",
 };
 
 const eyebrow: React.CSSProperties = {
   fontSize: "11px",
   color: "#888",
   letterSpacing: "0.16em",
-  marginBottom: "14px",
+  marginBottom: "12px",
 };
 
 const sectionTitle: React.CSSProperties = {
@@ -1180,7 +1328,6 @@ const inputStyle: React.CSSProperties = {
   border: "none",
   borderBottom: "1px solid #AAA",
   background: "transparent",
-  color: "#171717",
   outline: "none",
   fontSize: "16px",
 };
@@ -1191,44 +1338,37 @@ const textareaStyle: React.CSSProperties = {
   border: "1px solid #C7C7C2",
   background: "transparent",
   padding: "15px",
-  color: "#171717",
-  outline: "none",
   resize: "vertical",
   fontSize: "14px",
-  lineHeight: 1.7,
 };
 
 const selectStyle: React.CSSProperties = {
   width: "100%",
-  boxSizing: "border-box",
   padding: "13px 0",
   border: "none",
   borderBottom: "1px solid #AAA",
   background: "transparent",
-  color: "#171717",
-  outline: "none",
   fontSize: "15px",
 };
 
 const numberField: React.CSSProperties = {
   display: "flex",
-  alignItems: "center",
   borderBottom: "1px solid #AAA",
 };
 
 const numberInput: React.CSSProperties = {
   width: "100%",
-  padding: "13px 0",
   border: "none",
-  outline: "none",
   background: "transparent",
+  outline: "none",
+  padding: "13px 0",
   fontSize: "16px",
 };
 
 const unitText: React.CSSProperties = {
-  color: "#888",
   fontSize: "13px",
-  whiteSpace: "nowrap",
+  color: "#888",
+  alignSelf: "center",
 };
 
 const primaryButton: React.CSSProperties = {
@@ -1244,10 +1384,8 @@ const primaryButton: React.CSSProperties = {
 const secondaryButton: React.CSSProperties = {
   border: "1px solid #BEBEB9",
   background: "transparent",
-  color: "#171717",
   padding: "15px 26px",
   fontSize: "11px",
-  letterSpacing: "0.1em",
   cursor: "pointer",
 };
 
@@ -1261,8 +1399,6 @@ const filterButton: React.CSSProperties = {
 const smallButton: React.CSSProperties = {
   border: "none",
   background: "transparent",
-  color: "#555",
-  padding: "5px 0",
   fontSize: "10px",
   letterSpacing: "0.08em",
   cursor: "pointer",
@@ -1271,8 +1407,17 @@ const smallButton: React.CSSProperties = {
 const headerButton: React.CSSProperties = {
   border: "none",
   background: "transparent",
-  color: "#171717",
   fontSize: "11px",
   letterSpacing: "0.1em",
   cursor: "pointer",
+};
+
+const sectionNavButton: React.CSSProperties = {
+  border: "none",
+  background: "transparent",
+  padding: "0",
+  color: "#555",
+  fontSize: "13px",
+  cursor: "pointer",
+  borderBottom: "1px solid transparent",
 };
