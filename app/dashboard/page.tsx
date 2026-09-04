@@ -8,7 +8,6 @@ type Studio = {
   id: string;
   name: string;
   slug: string;
-  staff_label: string;
 };
 
 type Subscription = {
@@ -25,7 +24,13 @@ export default function DashboardPage() {
   const [subscription, setSubscription] =
     useState<Subscription | null>(null);
 
+  const [siteOrigin, setSiteOrigin] = useState("");
+  const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setSiteOrigin(window.location.origin);
+  }, []);
 
   useEffect(() => {
     async function loadDashboard() {
@@ -38,11 +43,17 @@ export default function DashboardPage() {
         return;
       }
 
-      const { data: studioData } = await supabase
+      const { data: studioData, error: studioError } = await supabase
         .from("studios")
-        .select("id, name, slug, staff_label")
+        .select("id, name, slug")
         .eq("owner_id", user.id)
         .maybeSingle();
+
+      if (studioError) {
+        console.error(studioError);
+        setLoading(false);
+        return;
+      }
 
       if (!studioData) {
         router.replace("/onboarding");
@@ -62,12 +73,27 @@ export default function DashboardPage() {
     }
 
     loadDashboard();
-  }, [router, supabase]);
+  }, [router]);
 
   async function logout() {
     await supabase.auth.signOut();
+
     router.replace("/login");
     router.refresh();
+  }
+
+  async function copyBookingUrl() {
+    if (!studio || !siteOrigin) return;
+
+    const bookingUrl = `${siteOrigin}/${studio.slug}`;
+
+    await navigator.clipboard.writeText(bookingUrl);
+
+    setCopied(true);
+
+    window.setTimeout(() => {
+      setCopied(false);
+    }, 1800);
   }
 
   if (loading || !studio) {
@@ -79,6 +105,8 @@ export default function DashboardPage() {
           justifyContent: "center",
           alignItems: "center",
           background: "#F7F7F5",
+          color: "#171717",
+          fontFamily: "Arial, sans-serif",
         }}
       >
         <span
@@ -92,6 +120,10 @@ export default function DashboardPage() {
       </main>
     );
   }
+
+  const bookingUrl = siteOrigin
+    ? `${siteOrigin}/${studio.slug}`
+    : `/${studio.slug}`;
 
   return (
     <main
@@ -129,6 +161,7 @@ export default function DashboardPage() {
             fontSize: "12px",
             letterSpacing: "0.1em",
             cursor: "pointer",
+            color: "#171717",
           }}
         >
           LOG OUT
@@ -172,7 +205,7 @@ export default function DashboardPage() {
             "總覽",
             "預約管理",
             "服務管理",
-            studio.staff_label,
+            "服務人員",
             "營業 / 班表",
             "客戶管理",
             "訂金設定",
@@ -229,9 +262,24 @@ export default function DashboardPage() {
               borderBottom: "1px solid #CFCFCA",
             }}
           >
-            <Metric label="TODAY" value="0" text="今日預約" />
-            <Metric label="THIS WEEK" value="0" text="本週預約" />
-            <Metric label="DEPOSIT" value="0" text="待確認訂金" />
+            <Metric
+              label="TODAY"
+              value="0"
+              text="今日預約"
+            />
+
+            <Metric
+              label="THIS WEEK"
+              value="0"
+              text="本週預約"
+            />
+
+            <Metric
+              label="DEPOSIT"
+              value="0"
+              text="待確認訂金"
+            />
+
             <Metric
               label="PLAN"
               value={(subscription?.plan || "free").toUpperCase()}
@@ -276,7 +324,7 @@ export default function DashboardPage() {
 
               {[
                 ["01", "新增第一個服務"],
-                ["02", `新增第一位${studio.staff_label}`],
+                ["02", "新增第一位服務人員"],
                 ["03", "設定營業時間"],
               ].map(([number, text]) => (
                 <div
@@ -297,7 +345,13 @@ export default function DashboardPage() {
                     {number}
                   </span>
 
-                  <span style={{ fontSize: "14px" }}>{text}</span>
+                  <span
+                    style={{
+                      fontSize: "14px",
+                    }}
+                  >
+                    {text}
+                  </span>
                 </div>
               ))}
             </div>
@@ -330,10 +384,51 @@ export default function DashboardPage() {
                   borderTop: "1px solid #D8D8D3",
                   borderBottom: "1px solid #D8D8D3",
                   padding: "22px 0",
-                  fontSize: "14px",
                 }}
               >
-                /{studio.slug}
+                <div
+                  style={{
+                    fontSize: "14px",
+                    lineHeight: 1.7,
+                    wordBreak: "break-all",
+                  }}
+                >
+                  {bookingUrl}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "18px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "18px",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={copyBookingUrl}
+                    style={{
+                      border: "1px solid #BEBEB9",
+                      background: "transparent",
+                      color: "#171717",
+                      padding: "10px 16px",
+                      fontSize: "11px",
+                      letterSpacing: "0.1em",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {copied ? "COPIED" : "COPY URL"}
+                  </button>
+
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#999",
+                    }}
+                  >
+                    公開預約頁將在後續預約模組建立
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -372,7 +467,10 @@ function Metric({
 
       <div
         style={{
-          fontSize: value.length > 4 ? "30px" : "48px",
+          fontSize:
+            value.length > 4
+              ? "30px"
+              : "48px",
           marginTop: "24px",
           letterSpacing: "-0.04em",
         }}
