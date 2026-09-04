@@ -29,7 +29,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setSiteOrigin(window.location.origin);
+    if (typeof window !== "undefined") {
+      setSiteOrigin(window.location.origin);
+    }
   }, []);
 
   useEffect(() => {
@@ -74,13 +76,6 @@ export default function DashboardPage() {
 
     loadDashboard();
   }, [router]);
-
-  async function logout() {
-    await supabase.auth.signOut();
-
-    router.replace("/login");
-    router.refresh();
-  }
 
   async function copyBookingUrl() {
     if (!studio || !siteOrigin) return;
@@ -144,296 +139,241 @@ export default function DashboardPage() {
           justifyContent: "space-between",
         }}
       >
-        <div
-          style={{
-            fontSize: "13px",
-            letterSpacing: "0.18em",
-          }}
-        >
-          BEAUTY BOOKING
-        </div>
-
-        <button
-          onClick={logout}
-          style={{
-            border: "none",
-            background: "transparent",
-            fontSize: "12px",
-            letterSpacing: "0.1em",
-            cursor: "pointer",
-            color: "#171717",
-          }}
-        >
-          LOG OUT
-        </button>
-      </header>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "230px 1fr",
-          minHeight: "calc(100vh - 77px)",
-        }}
-      >
-        <aside
-          style={{
-            padding: "40px 28px",
-            borderRight: "1px solid #DADAD5",
-          }}
-        >
+        <div>
           <div
             style={{
-              fontSize: "11px",
+              fontSize: "10px",
               color: "#999",
-              letterSpacing: "0.12em",
-              marginBottom: "26px",
-            }}
-          >
-            STUDIO
-          </div>
-
-          <div
-            style={{
-              fontSize: "18px",
-              marginBottom: "38px",
-            }}
-          >
-            {studio.name}
-          </div>
-
-          {[
-            "總覽",
-            "預約管理",
-            "服務管理",
-            "服務人員",
-            "營業 / 班表",
-            "客戶管理",
-            "訂金設定",
-            "工作室設定",
-            "方案管理",
-          ].map((item, index) => (
-            <div
-              key={item}
-              style={{
-                padding: "13px 0",
-                borderBottom: "1px solid #E1E1DD",
-                fontSize: "14px",
-                color: index === 0 ? "#111" : "#8A8A85",
-              }}
-            >
-              {item}
-            </div>
-          ))}
-        </aside>
-
-        <section
-          style={{
-            padding: "62px 64px 80px",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "11px",
-              letterSpacing: "0.18em",
-              color: "#888",
-              marginBottom: "18px",
+              letterSpacing: "0.14em",
+              marginBottom: "5px",
             }}
           >
             OVERVIEW
           </div>
 
-          <h1
+          <div
             style={{
-              fontSize: "52px",
-              fontWeight: 500,
-              letterSpacing: "-0.04em",
-              margin: 0,
+              fontSize: "17px",
             }}
           >
             {studio.name}
-          </h1>
-
-          <div
-            style={{
-              marginTop: "60px",
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              borderTop: "1px solid #CFCFCA",
-              borderBottom: "1px solid #CFCFCA",
-            }}
-          >
-            <Metric
-              label="TODAY"
-              value="0"
-              text="今日預約"
-            />
-
-            <Metric
-              label="THIS WEEK"
-              value="0"
-              text="本週預約"
-            />
-
-            <Metric
-              label="DEPOSIT"
-              value="0"
-              text="待確認訂金"
-            />
-
-            <Metric
-              label="PLAN"
-              value={(subscription?.plan || "free").toUpperCase()}
-              text={
-                subscription?.status === "active"
-                  ? "目前方案"
-                  : "方案狀態異常"
-              }
-            />
           </div>
+        </div>
 
-          <div
-            style={{
-              marginTop: "72px",
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "70px",
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: "11px",
-                  color: "#888",
-                  letterSpacing: "0.16em",
-                  marginBottom: "24px",
-                }}
-              >
-                GET STARTED
-              </div>
+        <button
+          type="button"
+          onClick={() => router.push("/dashboard/studio")}
+          style={{
+            border: "none",
+            background: "transparent",
+            color: "#171717",
+            fontSize: "11px",
+            letterSpacing: "0.1em",
+            cursor: "pointer",
+          }}
+        >
+          STUDIO SETTINGS
+        </button>
+      </header>
 
-              <h2
-                style={{
-                  fontSize: "30px",
-                  fontWeight: 500,
-                  letterSpacing: "-0.03em",
-                  margin: "0 0 28px",
-                }}
-              >
-                完成工作室設定
-              </h2>
+      <section
+        style={{
+          padding: "62px 64px 90px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "11px",
+            letterSpacing: "0.18em",
+            color: "#888",
+            marginBottom: "18px",
+          }}
+        >
+          TODAY
+        </div>
 
-              {[
-                ["01", "新增第一個服務"],
-                ["02", "新增第一位服務人員"],
-                ["03", "設定營業時間"],
-              ].map(([number, text]) => (
-                <div
-                  key={number}
-                  style={{
-                    display: "flex",
-                    gap: "22px",
-                    padding: "18px 0",
-                    borderTop: "1px solid #D8D8D3",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      color: "#999",
-                    }}
-                  >
-                    {number}
-                  </span>
+        <h1
+          style={{
+            fontSize: "52px",
+            fontWeight: 500,
+            letterSpacing: "-0.04em",
+            margin: 0,
+          }}
+        >
+          {studio.name}
+        </h1>
 
-                  <span
-                    style={{
-                      fontSize: "14px",
-                    }}
-                  >
-                    {text}
-                  </span>
-                </div>
-              ))}
+        <div
+          style={{
+            marginTop: "60px",
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            borderTop: "1px solid #CFCFCA",
+            borderBottom: "1px solid #CFCFCA",
+          }}
+        >
+          <Metric
+            label="TODAY"
+            value="0"
+            text="今日預約"
+          />
+
+          <Metric
+            label="THIS WEEK"
+            value="0"
+            text="本週預約"
+          />
+
+          <Metric
+            label="DEPOSIT"
+            value="0"
+            text="待確認訂金"
+          />
+
+          <Metric
+            label="PLAN"
+            value={(subscription?.plan || "free").toUpperCase()}
+            text={
+              subscription?.status === "active"
+                ? "目前方案"
+                : "方案狀態異常"
+            }
+          />
+        </div>
+
+        <div
+          style={{
+            marginTop: "72px",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "70px",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: "11px",
+                color: "#888",
+                letterSpacing: "0.16em",
+                marginBottom: "24px",
+              }}
+            >
+              GET STARTED
             </div>
 
-            <div>
-              <div
-                style={{
-                  fontSize: "11px",
-                  color: "#888",
-                  letterSpacing: "0.16em",
-                  marginBottom: "24px",
-                }}
-              >
-                YOUR BOOKING PAGE
-              </div>
+            <h2
+              style={{
+                fontSize: "30px",
+                fontWeight: 500,
+                letterSpacing: "-0.03em",
+                margin: "0 0 28px",
+              }}
+            >
+              完成工作室設定
+            </h2>
 
-              <h2
-                style={{
-                  fontSize: "30px",
-                  fontWeight: 500,
-                  letterSpacing: "-0.03em",
-                  margin: "0 0 28px",
-                }}
-              >
-                公開預約網址
-              </h2>
-
+            {[
+              ["01", "新增第一個服務"],
+              ["02", "新增第一位服務人員"],
+              ["03", "設定營業時間"],
+            ].map(([number, text]) => (
               <div
+                key={number}
                 style={{
+                  display: "flex",
+                  gap: "22px",
+                  padding: "18px 0",
                   borderTop: "1px solid #D8D8D3",
-                  borderBottom: "1px solid #D8D8D3",
-                  padding: "22px 0",
                 }}
               >
-                <div
+                <span
+                  style={{
+                    fontSize: "11px",
+                    color: "#999",
+                  }}
+                >
+                  {number}
+                </span>
+
+                <span
                   style={{
                     fontSize: "14px",
-                    lineHeight: 1.7,
-                    wordBreak: "break-all",
                   }}
                 >
-                  {bookingUrl}
-                </div>
+                  {text}
+                </span>
+              </div>
+            ))}
+          </div>
 
-                <div
+          <div>
+            <div
+              style={{
+                fontSize: "11px",
+                color: "#888",
+                letterSpacing: "0.16em",
+                marginBottom: "24px",
+              }}
+            >
+              YOUR BOOKING PAGE
+            </div>
+
+            <h2
+              style={{
+                fontSize: "30px",
+                fontWeight: 500,
+                letterSpacing: "-0.03em",
+                margin: "0 0 28px",
+              }}
+            >
+              公開預約網址
+            </h2>
+
+            <div
+              style={{
+                borderTop: "1px solid #D8D8D3",
+                borderBottom: "1px solid #D8D8D3",
+                padding: "22px 0",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "14px",
+                  lineHeight: 1.7,
+                  wordBreak: "break-all",
+                }}
+              >
+                {bookingUrl}
+              </div>
+
+              <div
+                style={{
+                  marginTop: "18px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "18px",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={copyBookingUrl}
                   style={{
-                    marginTop: "18px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "18px",
+                    border: "1px solid #BEBEB9",
+                    background: "transparent",
+                    color: "#171717",
+                    padding: "10px 16px",
+                    fontSize: "11px",
+                    letterSpacing: "0.1em",
+                    cursor: "pointer",
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={copyBookingUrl}
-                    style={{
-                      border: "1px solid #BEBEB9",
-                      background: "transparent",
-                      color: "#171717",
-                      padding: "10px 16px",
-                      fontSize: "11px",
-                      letterSpacing: "0.1em",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {copied ? "COPIED" : "COPY URL"}
-                  </button>
-
-                  <span
-                    style={{
-                      fontSize: "12px",
-                      color: "#999",
-                    }}
-                  >
-                    公開預約頁將在後續預約模組建立
-                  </span>
-                </div>
+                  {copied ? "COPIED" : "COPY URL"}
+                </button>
               </div>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </main>
   );
 }
@@ -467,10 +407,7 @@ function Metric({
 
       <div
         style={{
-          fontSize:
-            value.length > 4
-              ? "30px"
-              : "48px",
+          fontSize: value.length > 4 ? "30px" : "48px",
           marginTop: "24px",
           letterSpacing: "-0.04em",
         }}
