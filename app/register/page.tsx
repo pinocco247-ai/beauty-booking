@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 export default function RegisterPage() {
@@ -13,6 +14,7 @@ export default function RegisterPage() {
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
+
     setLoading(true);
     setMessage("");
 
@@ -35,91 +37,261 @@ export default function RegisterPage() {
     <main
       style={{
         minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#f7f3f1",
-        padding: "24px",
+        background: "#F7F7F5",
+        color: "#161616",
+        display: "grid",
+        gridTemplateColumns: "1.1fr 0.9fr",
       }}
     >
-      <div
+      <section
         style={{
-          width: "100%",
-          maxWidth: "420px",
-          background: "#ffffff",
-          padding: "32px",
-          borderRadius: "16px",
-          boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
+          padding: "56px 64px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          borderRight: "1px solid #DADAD6",
+          minHeight: "100vh",
         }}
       >
-        <h1 style={{ marginBottom: "8px" }}>建立帳號</h1>
-
-        <p style={{ marginBottom: "24px", color: "#777" }}>
-          建立你的美業預約工作室
-        </p>
-
-        <form onSubmit={handleRegister}>
-          <div style={{ marginBottom: "16px" }}>
-            <label>Email</label>
-
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              style={{
-                width: "100%",
-                padding: "12px",
-                marginTop: "6px",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: "20px" }}>
-            <label>密碼</label>
-
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              style={{
-                width: "100%",
-                padding: "12px",
-                marginTop: "6px",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-              }}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
+        <div>
+          <div
             style={{
-              width: "100%",
-              padding: "13px",
-              border: "none",
-              borderRadius: "8px",
-              background: "#9d7f72",
-              color: "#fff",
-              cursor: "pointer",
-              fontSize: "16px",
+              fontSize: "13px",
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              marginBottom: "72px",
             }}
           >
-            {loading ? "建立中..." : "建立帳號"}
-          </button>
-        </form>
+            BEAUTY BOOKING
+          </div>
 
-        {message && (
-          <p style={{ marginTop: "18px", color: "#555" }}>
-            {message}
+          <div
+            style={{
+              maxWidth: "620px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "12px",
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "#777",
+                marginBottom: "18px",
+              }}
+            >
+              Booking infrastructure for beauty studios
+            </div>
+
+            <h1
+              style={{
+                fontSize: "64px",
+                lineHeight: 1.02,
+                fontWeight: 500,
+                letterSpacing: "-0.04em",
+                margin: 0,
+              }}
+            >
+              Build a booking
+              <br />
+              experience that
+              <br />
+              feels like your brand.
+            </h1>
+
+            <p
+              style={{
+                marginTop: "28px",
+                maxWidth: "470px",
+                color: "#666",
+                fontSize: "16px",
+                lineHeight: 1.8,
+              }}
+            >
+              給美髮、美甲、美睫、霧眉、做臉、按摩與各類美業工作室的客製化預約系統。
+            </p>
+          </div>
+        </div>
+
+        <div
+          style={{
+            fontSize: "12px",
+            color: "#888",
+            letterSpacing: "0.04em",
+          }}
+        >
+          BEAUTY BOOKING · 2026
+        </div>
+      </section>
+
+      <section
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "40px",
+          background: "#FFFFFF",
+        }}
+      >
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "420px",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "12px",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              color: "#7B7B77",
+              marginBottom: "18px",
+            }}
+          >
+            Create account
+          </div>
+
+          <h2
+            style={{
+              fontSize: "34px",
+              fontWeight: 500,
+              letterSpacing: "-0.03em",
+              margin: "0 0 10px",
+            }}
+          >
+            建立你的工作室
+          </h2>
+
+          <p
+            style={{
+              color: "#777",
+              margin: "0 0 36px",
+              lineHeight: 1.7,
+              fontSize: "14px",
+            }}
+          >
+            免費方案可建立 1 位服務人員，之後需要多人管理時再升級。
           </p>
-        )}
-      </div>
+
+          <form onSubmit={handleRegister}>
+            <div style={{ marginBottom: "24px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "12px",
+                  letterSpacing: "0.08em",
+                  marginBottom: "10px",
+                }}
+              >
+                EMAIL
+              </label>
+
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="name@example.com"
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  border: "none",
+                  borderBottom: "1px solid #BEBEB8",
+                  padding: "13px 0",
+                  fontSize: "15px",
+                  outline: "none",
+                  background: "transparent",
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: "32px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "12px",
+                  letterSpacing: "0.08em",
+                  marginBottom: "10px",
+                }}
+              >
+                PASSWORD
+              </label>
+
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                placeholder="至少 6 個字元"
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  border: "none",
+                  borderBottom: "1px solid #BEBEB8",
+                  padding: "13px 0",
+                  fontSize: "15px",
+                  outline: "none",
+                  background: "transparent",
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: "100%",
+                border: "none",
+                background: "#151515",
+                color: "#FFFFFF",
+                padding: "15px 18px",
+                fontSize: "14px",
+                letterSpacing: "0.05em",
+                cursor: loading ? "default" : "pointer",
+                opacity: loading ? 0.6 : 1,
+              }}
+            >
+              {loading ? "CREATING..." : "CREATE ACCOUNT"}
+            </button>
+          </form>
+
+          {message && (
+            <div
+              style={{
+                marginTop: "20px",
+                paddingTop: "16px",
+                borderTop: "1px solid #E1E1DD",
+                color: "#555",
+                fontSize: "14px",
+                lineHeight: 1.6,
+              }}
+            >
+              {message}
+            </div>
+          )}
+
+          <div
+            style={{
+              marginTop: "30px",
+              fontSize: "14px",
+              color: "#777",
+            }}
+          >
+            已經有帳號？{" "}
+            <Link
+              href="/login"
+              style={{
+                color: "#111",
+                textDecoration: "none",
+                borderBottom: "1px solid #111",
+                paddingBottom: "2px",
+              }}
+            >
+              登入
+            </Link>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
