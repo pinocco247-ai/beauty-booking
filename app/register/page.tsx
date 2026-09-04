@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "../../lib/supabase/client";
 
 export default function RegisterPage() {
   const supabase = createClient();
@@ -65,11 +65,7 @@ export default function RegisterPage() {
             BEAUTY BOOKING
           </div>
 
-          <div
-            style={{
-              maxWidth: "620px",
-            }}
-          >
+          <div style={{ maxWidth: "620px" }}>
             <div
               style={{
                 fontSize: "12px",
